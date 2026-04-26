@@ -18,7 +18,10 @@ RestartSec=3s
 TimeoutStopSec=10s
 
 # Hardening: the service only needs to read its own dir + write the SQLite DB.
-NoNewPrivileges=true
+# NoNewPrivileges is intentionally omitted: sudo (used for settings writes and
+# the updater) relies on its setuid-root bit, which the kernel blocks when
+# PR_SET_NO_NEW_PRIVS is set. The sudoers drop-in restricts exactly which
+# commands bambu may run as root, so the privilege surface is still narrow.
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
