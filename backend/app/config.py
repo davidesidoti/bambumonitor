@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     )
     update_script_path: Path = Path("/opt/bambu-monitor/deploy/scripts/update.sh")
 
+    # Send-print feature.
+    jobs_dir: Path = Path("/var/lib/bambu-monitor/jobs")
+    jobs_max_upload_mb: int = 800
+    jobs_ttl_minutes: int = 360
+    printer_ftps_port: int = 990
+    printer_ftps_user: str = "bblp"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

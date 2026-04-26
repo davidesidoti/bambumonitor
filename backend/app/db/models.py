@@ -43,3 +43,18 @@ class FilamentSetting(SQLModel, table=True):
     type: str = ""
     color: str = ""
     updated_at: datetime
+
+
+class Job(SQLModel, table=True):
+    """An uploaded .3mf project waiting to be (or already) sent to the printer."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    created_at: datetime = Field(index=True)
+    original_filename: str
+    stored_path: str
+    size_bytes: int = 0
+    status: str = Field(index=True, default="uploaded")
+    plate_count: int = 0
+    metadata_json: str = ""
+    last_send_payload_json: str | None = None
+    print_id: int | None = Field(default=None, foreign_key="print.id", index=True)

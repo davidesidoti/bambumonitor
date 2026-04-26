@@ -20,7 +20,9 @@ export async function apiFetch<T>(
   if (USE_MOCK) return mockApiFetch<T>(path, init);
 
   const headers = new Headers(init?.headers);
-  if (init?.body && !headers.has("content-type")) {
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
+  if (init?.body && !isFormData && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }
   const res = await fetch(`${BASE}${path}`, { ...init, headers });

@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 const LINKS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/prints", label: "Storico", end: false },
+  { to: "/send-print", label: "Invia stampa", end: false },
   { to: "/stats", label: "Statistiche", end: false },
   { to: "/settings", label: "Impostazioni", end: false },
 ];

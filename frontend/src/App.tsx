@@ -12,6 +12,7 @@ const PrintHistory = lazy(() => import("@/routes/PrintHistory"));
 const PrintDetail = lazy(() => import("@/routes/PrintDetail"));
 const Stats = lazy(() => import("@/routes/Stats"));
 const Settings = lazy(() => import("@/routes/Settings"));
+const SendPrint = lazy(() => import("@/routes/SendPrint"));
 
 export default function App() {
   const refreshSeconds = usePreferences((s) => s.refreshIntervalSeconds);
@@ -73,6 +74,14 @@ export default function App() {
                 element={
                   <Suspense fallback={<PageSkeleton />}>
                     <Settings />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="send-print"
+                element={
+                  <Suspense fallback={<PageSkeleton />}>
+                    <SendPrint />
                   </Suspense>
                 }
               />

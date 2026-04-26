@@ -32,5 +32,9 @@ PrivateTmp=true
 ProtectSystem=true
 ProtectHome=read-only
 
+# Persistent state for uploaded .3mf jobs (resolved to /var/lib/bambu-monitor/).
+StateDirectory=bambu-monitor
+StateDirectoryMode=0750
+
 [Install]
 WantedBy=multi-user.target

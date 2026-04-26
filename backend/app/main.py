@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import control as control_api
 from app.api import filament as filament_api
 from app.api import health as health_api
+from app.api import jobs as jobs_api
 from app.api import prints as prints_api
 from app.api import settings as settings_api
 from app.api import state as state_api
@@ -65,6 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(filament_api.router, prefix="/api")
     app.include_router(control_api.router, prefix="/api")
     app.include_router(settings_api.router, prefix="/api")
+    app.include_router(jobs_api.router, prefix="/api")
     app.include_router(ws_api.router)
 
     return app
