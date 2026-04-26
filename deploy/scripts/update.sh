@@ -13,6 +13,10 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 echo "==> git pull"
+# Repo is owned by the bambu service user; git refuses to operate on it
+# as root unless we explicitly mark the path safe (CVE-2022-24765 mitigation).
+git config --global --get-all safe.directory | grep -qxF "${REPO_ROOT}" \
+  || git config --global --add safe.directory "${REPO_ROOT}"
 git -C "${REPO_ROOT}" pull --ff-only
 
 echo "==> re-running setup.sh (idempotent)"

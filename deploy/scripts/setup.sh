@@ -24,6 +24,11 @@ if [[ ! -d "${REPO_ROOT}/backend" ]]; then
   exit 1
 fi
 
+# After the chown below the repo is owned by ${SERVICE_USER}, so root needs
+# safe.directory to operate (git pull, etc.). Idempotent.
+git config --global --get-all safe.directory | grep -qxF "${REPO_ROOT}" \
+  || git config --global --add safe.directory "${REPO_ROOT}"
+
 echo "==> installing system packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
