@@ -9,6 +9,9 @@ User=bambu
 Group=bambu
 WorkingDirectory=/opt/bambu-monitor/backend
 EnvironmentFile=/etc/bambu-monitor.env
+# uv lives under /home/bambu/.local/bin, so /home must stay reachable.
+# Point uv's cache at the project dir so the read-only home is not a problem.
+Environment=UV_CACHE_DIR=/opt/bambu-monitor/backend/.uv-cache
 ExecStart=/home/bambu/.local/bin/uv run uvicorn app.main:app --host 127.0.0.1 --port 1111 --workers 1
 Restart=on-failure
 RestartSec=3s
@@ -18,7 +21,7 @@ TimeoutStopSec=10s
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=true
+ProtectHome=read-only
 ReadWritePaths=/opt/bambu-monitor/backend
 
 [Install]
