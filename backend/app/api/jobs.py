@@ -148,7 +148,7 @@ async def upload_job(
 async def list_jobs(session: AsyncSession = Depends(get_session)) -> list[JobSummary]:
     rows = (
         await session.execute(
-            select(Job).order_by(Job.created_at.desc()).limit(50)  # type: ignore[attr-defined]
+            select(Job).order_by(Job.created_at.desc()).limit(50)
         )
     ).scalars().all()
     return [_summary(j) for j in rows]

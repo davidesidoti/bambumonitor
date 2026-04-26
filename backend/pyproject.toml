@@ -13,6 +13,7 @@ dependencies = [
   "pydantic-settings>=2.6",
   "structlog>=24.4",
   "python-dotenv>=1.0",
+  "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]
@@ -65,6 +66,7 @@ module = [
   "app.api.prints",
   "app.api.stats",
   "app.api.filament",
+  "app.api.jobs",
   "app.api.ws",
   "app.api.deps",
   "app.db.session",
