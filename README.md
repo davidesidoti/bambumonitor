@@ -27,12 +27,12 @@ Open http://localhost:5173 . The dashboard runs entirely on synthetic data, no p
 cd backend
 cp .env.example .env   # edit with PRINTER_IP, PRINTER_SERIAL, PRINTER_ACCESS_CODE
 uv sync
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 1111
 
 # Terminal 2: frontend
 cd frontend
 npm install
-npm run dev   # proxies /api and /ws to localhost:8000
+npm run dev   # proxies /api and /ws to localhost:1111
 ```
 
 ## Production deploy (Ubuntu 24.04)

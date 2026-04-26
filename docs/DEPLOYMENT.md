@@ -62,7 +62,7 @@ sudo systemctl start ustreamer.service bambu-monitor.service
 
 ```bash
 # Backend health (also reports MQTT connection):
-curl http://127.0.0.1:8000/api/health
+curl http://127.0.0.1:1111/api/health
 # { "ok": true, "mqtt_connected": true }
 
 # nginx serving the SPA:

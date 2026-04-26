@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     dev_mode: bool = True
 
     ws_path: str = "/ws"
-    ustreamer_url: str = "http://127.0.0.1:8080"
+    ustreamer_url: str = "http://127.0.0.1:9999"
 
     telemetry_interval_seconds: int = 10
     ws_heartbeat_interval_seconds: int = 30

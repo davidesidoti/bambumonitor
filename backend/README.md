@@ -13,17 +13,17 @@ uv sync
 ## Run (dev)
 
 ```bash
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 1111
 ```
 
 Health check:
 
 ```bash
-curl http://127.0.0.1:8000/api/health
+curl http://127.0.0.1:1111/api/health
 # → {"ok": true, "mqtt_connected": true}
 ```
 
-OpenAPI docs at http://127.0.0.1:8000/docs.
+OpenAPI docs at http://127.0.0.1:1111/docs.
 
 ## Quality gates
 

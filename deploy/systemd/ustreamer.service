@@ -19,7 +19,7 @@ ExecStart=/usr/bin/ustreamer \
   --desired-fps=30 \
   --format=MJPEG \
   --host=127.0.0.1 \
-  --port=8080 \
+  --port=9999 \
   --drop-same-frames=30 \
   --slowdown
 
