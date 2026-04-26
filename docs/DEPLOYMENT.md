@@ -41,9 +41,36 @@ LOG_LEVEL=INFO
 DEV_MODE=false                 # JSON logs, no CORS dev rule
 ```
 
-### `/etc/systemd/system/ustreamer.service`
+### Camera tuning (use a systemd drop-in, not direct edits)
 
-Edit the `--device=` flag. To find your camera:
+The repo's `ustreamer.service` is a generic template. **Do not edit it directly** — `install_services.sh` will overwrite it on every update. Instead, customise via a drop-in override that lives outside the repo:
+
+```bash
+sudo systemctl edit ustreamer.service
+```
+
+Put your `--device=...`, `--resolution=...`, and any `ExecStartPre=v4l2-ctl ...` tweaks (exposure, gain, brightness, etc.) in there. Start with `ExecStart=` and `ExecStartPre=` (empty) on a fresh line to clear the template's settings, then redeclare. Example:
+
+```ini
+[Service]
+ExecStartPre=
+ExecStart=
+
+ExecStartPre=/usr/bin/v4l2-ctl -d /dev/v4l/by-id/usb-...-video-index0 --set-ctrl=auto_exposure=3
+ExecStartPre=/usr/bin/v4l2-ctl -d /dev/v4l/by-id/usb-...-video-index0 --set-ctrl=gain=20
+ExecStart=/usr/bin/ustreamer \
+  --device=/dev/v4l/by-id/usb-...-video-index0 \
+  --resolution=1280x720 --desired-fps=30 --format=MJPEG \
+  --host=127.0.0.1 --port=9999 --drop-same-frames=30 --slowdown
+```
+
+The override file lands at `/etc/systemd/system/ustreamer.service.d/override.conf`. Verify with:
+
+```bash
+sudo systemctl cat ustreamer.service   # shows base + override merged
+```
+
+To find your camera:
 
 ```bash
 v4l2-ctl --list-devices

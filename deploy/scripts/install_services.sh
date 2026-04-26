@@ -14,6 +14,14 @@ echo "==> installing systemd units"
 install -m 0644 "${REPO_ROOT}/deploy/systemd/bambu-monitor.service" /etc/systemd/system/
 install -m 0644 "${REPO_ROOT}/deploy/systemd/ustreamer.service" /etc/systemd/system/
 
+# Per-host customisations live in drop-in directories and are preserved.
+for unit in bambu-monitor ustreamer; do
+  dir="/etc/systemd/system/${unit}.service.d"
+  if [[ -d "${dir}" ]] && compgen -G "${dir}/*.conf" > /dev/null; then
+    echo "    preserved drop-in overrides in ${dir}"
+  fi
+done
+
 echo "==> installing nginx site"
 install -m 0644 "${REPO_ROOT}/deploy/nginx/bambu-monitor.conf" /etc/nginx/sites-available/bambu-monitor.conf
 ln -sf /etc/nginx/sites-available/bambu-monitor.conf /etc/nginx/sites-enabled/bambu-monitor.conf

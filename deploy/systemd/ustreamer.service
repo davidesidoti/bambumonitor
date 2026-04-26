@@ -8,14 +8,14 @@ Type=simple
 User=bambu
 Group=video
 
-# EDIT THIS: point --device at your actual webcam node.
-# Common values:
-#   --device=/dev/video0
-#   --device=/dev/v4l/by-id/usb-046d_HD_Pro_Webcam_C920_<serial>-video-index0
-# Run `v4l2-ctl --list-devices` on the host to find the right one.
+# Generic baseline. Per-host customisation (real device path, resolution,
+# v4l2-ctl exposure / gain / contrast tweaks) MUST go in a drop-in override:
+#   sudo systemctl edit ustreamer.service
+# That override lives at /etc/systemd/system/ustreamer.service.d/override.conf
+# and is preserved across `update.sh` runs. See docs/DEPLOYMENT.md.
 ExecStart=/usr/bin/ustreamer \
   --device=/dev/video0 \
-  --resolution=1920x1080 \
+  --resolution=1280x720 \
   --desired-fps=30 \
   --format=MJPEG \
   --host=127.0.0.1 \
