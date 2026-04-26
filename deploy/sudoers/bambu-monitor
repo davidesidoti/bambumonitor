@@ -1,0 +1,12 @@
+# Sudoers grant for the bambu-monitor backend (settings tab).
+# Installed by deploy/scripts/setup.sh as /etc/sudoers.d/bambu-monitor (mode 0440).
+# Validated with `visudo -cf` before being moved into place.
+
+bambu ALL=(root) NOPASSWD: /bin/systemctl restart bambu-monitor.service
+bambu ALL=(root) NOPASSWD: /bin/systemctl restart ustreamer.service
+bambu ALL=(root) NOPASSWD: /bin/systemctl daemon-reload
+bambu ALL=(root) NOPASSWD: /usr/bin/tee /etc/bambu-monitor.env
+bambu ALL=(root) NOPASSWD: /usr/bin/tee /etc/systemd/system/ustreamer.service.d/override.conf
+bambu ALL=(root) NOPASSWD: /opt/bambu-monitor/deploy/scripts/update.sh
+
+Defaults!/usr/bin/tee,/bin/systemctl,/opt/bambu-monitor/deploy/scripts/update.sh !requiretty

@@ -71,6 +71,13 @@ REPO_ROOT="${REPO_ROOT}" bash "${REPO_ROOT}/deploy/scripts/build_frontend.sh"
 echo "==> installing services"
 REPO_ROOT="${REPO_ROOT}" bash "${REPO_ROOT}/deploy/scripts/install_services.sh"
 
+echo "==> installing sudoers grant for settings tab"
+install -d -m 0755 /etc/systemd/system/ustreamer.service.d
+install -m 0440 -o root -g root \
+  "${REPO_ROOT}/deploy/sudoers/bambu-monitor" \
+  /etc/sudoers.d/bambu-monitor
+visudo -cf /etc/sudoers.d/bambu-monitor
+
 echo "==> opening firewall (HTTP)"
 if command -v ufw >/dev/null 2>&1; then
   if ufw status | grep -qw active; then

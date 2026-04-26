@@ -1,0 +1,18 @@
+# Reference example of the ustreamer drop-in managed by the bambu-monitor
+# settings tab. The real file lives at
+# /etc/systemd/system/ustreamer.service.d/override.conf and is rewritten by
+# the backend whenever the user saves the Webcam panel.
+#
+# Apply manually with:
+#   sudo install -d /etc/systemd/system/ustreamer.service.d
+#   sudo cp override.conf.example /etc/systemd/system/ustreamer.service.d/override.conf
+#   sudo systemctl daemon-reload && sudo systemctl restart ustreamer.service
+
+[Service]
+ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c exposure_auto=1
+ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c exposure_absolute=250
+ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c gain=0
+ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c contrast=128
+ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c brightness=128
+ExecStart=
+ExecStart=/usr/bin/ustreamer --device=/dev/video0 --resolution=1280x720 --desired-fps=15 --format=MJPEG --host=127.0.0.1 --port=9999 --drop-same-frames=0 --slowdown

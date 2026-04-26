@@ -26,6 +26,10 @@ It does, in order:
 5. Builds the frontend SPA (`npm ci && npm run build`) and rsyncs `dist/` to `/var/www/bambu-monitor/`.
 6. Installs `bambu-monitor.service`, `ustreamer.service`, and the nginx site config.
 7. Drops `/etc/bambu-monitor.env` (copied from `.env.example`) the first time.
+8. Installs `/etc/sudoers.d/bambu-monitor` granting the `bambu` user the
+   narrow set of `sudo` rights the in-app **Settings tab** needs (rewrite
+   `/etc/bambu-monitor.env`, write the ustreamer drop-in, restart both
+   services, run `update.sh`). Validated via `visudo -cf` before install.
 
 ## Configure
 
@@ -107,7 +111,28 @@ sudo tail -f /var/log/nginx/error.log
 
 Open `http://<host-ip>` (or `http://bambu.local`) on any device on the LAN. The dashboard loads, connects to the WebSocket within 1-2 seconds, and starts streaming live state.
 
+## Settings tab (in-app)
+
+Visit `http://<host>/settings` once the app is up. The tab has four sections:
+
+- **Backend** — rewrites `/etc/bambu-monitor.env` and restarts
+  `bambu-monitor.service`. The printer access code is masked; leave it as
+  `********` to keep the existing value.
+- **Webcam** — rewrites `/etc/systemd/system/ustreamer.service.d/override.conf`
+  with the ustreamer flags and `v4l2-ctl` controls you pick, then runs
+  `daemon-reload` + `systemctl restart ustreamer.service`.
+- **App** — client-only preferences (theme, refresh interval) persisted in
+  `localStorage`; no server side-effect.
+- **Sistema** — shows the running version + git sha, and a button that
+  streams `update.sh` log lines back to the browser via Server-Sent Events.
+
+All server-touching actions go through the sudoers grant installed by
+`setup.sh`. The app has no authentication — keep it on a trusted LAN.
+
 ## Updates
+
+The Settings → Sistema → "Aggiorna app" button runs the same script described
+below. From the shell:
 
 ```bash
 sudo bash /opt/bambu-monitor/deploy/scripts/update.sh

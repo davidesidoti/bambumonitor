@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -29,6 +30,15 @@ class Settings(BaseSettings):
 
     telemetry_interval_seconds: int = 10
     ws_heartbeat_interval_seconds: int = 30
+
+    # Paths used by the settings tab. Defaults match the production layout
+    # described in deploy/. Tests override via env vars.
+    repo_root: Path = Path("/opt/bambu-monitor")
+    env_file_path: Path = Path("/etc/bambu-monitor.env")
+    ustreamer_dropin_path: Path = Path(
+        "/etc/systemd/system/ustreamer.service.d/override.conf"
+    )
+    update_script_path: Path = Path("/opt/bambu-monitor/deploy/scripts/update.sh")
 
 
 @lru_cache(maxsize=1)

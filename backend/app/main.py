@@ -10,6 +10,7 @@ from app.api import control as control_api
 from app.api import filament as filament_api
 from app.api import health as health_api
 from app.api import prints as prints_api
+from app.api import settings as settings_api
 from app.api import state as state_api
 from app.api import stats as stats_api
 from app.api import ws as ws_api
@@ -26,7 +27,7 @@ log = get_logger(__name__)
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level, settings.dev_mode)
-    log.info("app.starting", version="0.1.0")
+    log.info("app.starting", version=settings_api.get_version().version)
 
     await init_db()
     mqtt_worker.start_worker()
@@ -45,7 +46,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Bambu Monitor API",
-        version="0.1.0",
+        version=settings_api.get_version().version,
         lifespan=lifespan,
     )
 
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(stats_api.router, prefix="/api")
     app.include_router(filament_api.router, prefix="/api")
     app.include_router(control_api.router, prefix="/api")
+    app.include_router(settings_api.router, prefix="/api")
     app.include_router(ws_api.router)
 
     return app
