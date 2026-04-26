@@ -1,0 +1,34 @@
+[Unit]
+Description=ustreamer MJPEG webcam server for Bambu Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bambu
+Group=video
+
+# EDIT THIS: point --device at your actual webcam node.
+# Common values:
+#   --device=/dev/video0
+#   --device=/dev/v4l/by-id/usb-046d_HD_Pro_Webcam_C920_<serial>-video-index0
+# Run `v4l2-ctl --list-devices` on the host to find the right one.
+ExecStart=/usr/bin/ustreamer \
+  --device=/dev/video0 \
+  --resolution=1920x1080 \
+  --desired-fps=30 \
+  --format=MJPEG \
+  --host=127.0.0.1 \
+  --port=8080 \
+  --drop-same-frames=30 \
+  --slowdown
+
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=5s
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
