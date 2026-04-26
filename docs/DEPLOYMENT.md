@@ -83,11 +83,21 @@ Open `http://<host-ip>` (or `http://bambu.local`) on any device on the LAN. The 
 ## Updates
 
 ```bash
-cd /opt/bambu-monitor
-sudo git pull
-sudo bash deploy/scripts/setup.sh   # re-runs install steps idempotently
-sudo systemctl restart bambu-monitor.service
+sudo bash /opt/bambu-monitor/deploy/scripts/update.sh
 ```
+
+That script does, in order: `git pull` (as root, so the bambu-owned tree is fine), re-runs `setup.sh` to rebuild + re-chown, then restarts both systemd services and reloads nginx.
+
+If you prefer the manual sequence:
+
+```bash
+sudo git -C /opt/bambu-monitor pull
+sudo bash /opt/bambu-monitor/deploy/scripts/setup.sh
+sudo systemctl restart bambu-monitor.service ustreamer.service
+sudo systemctl reload nginx
+```
+
+**Why not `git pull` as your normal user?** `setup.sh` chowns the repo to the `bambu` service user so the systemd unit can read it. Git refuses to operate on a tree owned by a different user (CVE-2022-24765). Pulling as root sidesteps that without weakening anything.
 
 ## Backup
 
