@@ -87,3 +87,85 @@ def test_garbage_input_is_safe() -> None:
 def test_empty_filament_string_is_dropped() -> None:
     patch = parse_report({"print": {"filament_type": "  "}})
     assert "filament_type" not in patch
+
+
+# ─────────────────────────────────────────────
+# AMS extraction
+# ─────────────────────────────────────────────
+AMS_PAYLOAD = {
+    "print": {
+        "ams": {
+            "tray_now": "1",
+            "tray_pre": "255",
+            "ams": [
+                {
+                    "id": "0",
+                    "tray": [
+                        {
+                            "id": "0",
+                            "tray_type": "PLA",
+                            "tray_sub_brands": "Bambu",
+                            "tray_color": "FF0000FF",
+                        },
+                        {
+                            "id": "1",
+                            "tray_type": "PETG",
+                            "tray_sub_brands": "Generic",
+                            "tray_color": "FFD400FF",
+                        },
+                    ],
+                }
+            ],
+        }
+    }
+}
+
+
+def test_ams_extracts_active_tray() -> None:
+    patch = parse_report(AMS_PAYLOAD)
+    assert patch["filament_type"] == "Generic PETG"
+    assert patch["filament_color"] == "#FFD400"
+
+
+def test_ams_external_spool_slot_is_skipped() -> None:
+    payload = {"print": {"ams": {"tray_now": "254", "ams": []}}}
+    patch = parse_report(payload)
+    assert "filament_type" not in patch
+    assert "filament_color" not in patch
+
+
+def test_ams_no_brand_uses_type_alone() -> None:
+    payload = {
+        "print": {
+            "ams": {
+                "tray_now": "0",
+                "ams": [
+                    {
+                        "id": "0",
+                        "tray": [
+                            {"id": "0", "tray_type": "PLA", "tray_color": "00FF00FF"}
+                        ],
+                    }
+                ],
+            }
+        }
+    }
+    patch = parse_report(payload)
+    assert patch["filament_type"] == "PLA"
+    assert patch["filament_color"] == "#00FF00"
+
+
+def test_ams_invalid_color_is_dropped() -> None:
+    payload = {
+        "print": {
+            "ams": {
+                "tray_now": "0",
+                "ams": [
+                    {"id": "0", "tray": [{"id": "0", "tray_type": "PLA", "tray_color": "ZZZ"}]}
+                ],
+            }
+        }
+    }
+    patch = parse_report(payload)
+    assert patch["filament_type"] == "PLA"
+    assert "filament_color" not in patch

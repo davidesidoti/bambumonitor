@@ -117,3 +117,4 @@ sudo cp /opt/bambu-monitor/backend/bambu.db /backup/bambu.$(date +%F).db
 | Webcam tile shows the placeholder | Either ustreamer is down or the device path is wrong. `journalctl -u ustreamer.service -f`. |
 | `502 Bad Gateway` on /api or /ws | Backend service is down. `systemctl status bambu-monitor.service`. |
 | TLS handshake errors at startup | Almost always wrong access code. Double-check on the printer display. |
+| Page hangs from another LAN device but `curl http://127.0.0.1` from the host works | UFW (or another firewall) is blocking inbound :80. `sudo ufw allow 80/tcp && sudo ufw reload`. |

@@ -66,6 +66,16 @@ REPO_ROOT="${REPO_ROOT}" bash "${REPO_ROOT}/deploy/scripts/build_frontend.sh"
 echo "==> installing services"
 REPO_ROOT="${REPO_ROOT}" bash "${REPO_ROOT}/deploy/scripts/install_services.sh"
 
+echo "==> opening firewall (HTTP)"
+if command -v ufw >/dev/null 2>&1; then
+  if ufw status | grep -qw active; then
+    ufw allow 80/tcp || true
+    ufw reload || true
+  else
+    echo "    ufw is installed but inactive: skipping. Open :80 manually if you enable it."
+  fi
+fi
+
 echo
 echo "==> setup complete"
 echo

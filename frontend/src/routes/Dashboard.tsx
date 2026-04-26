@@ -6,13 +6,15 @@ import { RunningCard } from "@/components/dashboard/RunningCard";
 import { IdleCard } from "@/components/dashboard/IdleCard";
 import { FailedCard } from "@/components/dashboard/FailedCard";
 import { TempCard } from "@/components/dashboard/TempCard";
+import { FilamentTile } from "@/components/dashboard/FilamentTile";
 import { SPEED_LABEL } from "@/lib/format";
-import { filamentColor } from "@/lib/filamentColors";
+import { useFilament } from "@/hooks/useFilament";
 
 export default function Dashboard() {
   useLivePrinterState();
   const state = usePrinterStore((s) => s.state);
   const hasSnapshot = usePrinterStore((s) => s.hasSnapshot);
+  const { data: filamentFallback } = useFilament();
 
   const status = state.gcode_state;
   const isRunning = status === "RUNNING" || status === "PAUSE";
@@ -36,11 +38,12 @@ export default function Dashboard() {
               hint="parte raffr."
               mono
             />
-            <KpiTile
-              label="Filamento"
-              value={state.filament_type ?? "—"}
-              hint={state.filament_color ?? ""}
-              swatch={filamentColor(state.filament_color)}
+            <FilamentTile
+              live={{
+                type: state.filament_type,
+                color: state.filament_color,
+              }}
+              fallback={filamentFallback}
             />
           </div>
         </div>

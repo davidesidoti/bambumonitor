@@ -13,7 +13,11 @@ const FILAMENT_COLORS: Record<string, string> = {
   Verde: "oklch(70% 0.16 145)",
 };
 
+// CSS hex color, possibly with alpha. Accepts "#RRGGBB" or "#RRGGBBAA".
+const HEX_RE = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
+
 export function filamentColor(name: string | null | undefined): string {
   if (!name) return "var(--fg-4)";
+  if (HEX_RE.test(name)) return name;
   return FILAMENT_COLORS[name] ?? "var(--fg-3)";
 }

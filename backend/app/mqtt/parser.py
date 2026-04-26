@@ -104,9 +104,83 @@ def parse_report(payload: dict[str, Any]) -> dict[str, Any]:
         dt = from_unix_seconds(block.get("gcode_start_time"))
         patch["started_at"] = iso_z(dt) if dt else None
 
-    # Filament best-effort
-    ftype = block.get("filament_type") or block.get("filament_id")
-    if isinstance(ftype, str) and ftype.strip():
-        patch["filament_type"] = ftype.strip()
+    # Filament: prefer the AMS active tray (rich data with brand + color),
+    # fall back to top-level filament_type otherwise.
+    ams_filament = _extract_ams_active_filament(block)
+    if ams_filament is not None:
+        patch.update(ams_filament)
+    else:
+        ftype = block.get("filament_type") or block.get("filament_id")
+        if isinstance(ftype, str) and ftype.strip():
+            patch["filament_type"] = ftype.strip()
 
     return patch
+
+
+def _extract_ams_active_filament(block: dict[str, Any]) -> dict[str, Any] | None:
+    """Pull type + color from the currently-active AMS tray.
+
+    Bambu's AMS payload looks roughly like:
+        "ams": {
+            "tray_now": "0",
+            "ams": [{"id": "0", "tray": [{"id": "0", "tray_type": "PLA",
+                     "tray_sub_brands": "Generic", "tray_color": "FFD400FF"}, ...]}]
+        }
+    `tray_now` is a string slot index. "254" = external spool, "255" = none.
+    For the A1 AMS Lite there's a single AMS unit with 4 trays.
+    """
+    ams_root = block.get("ams")
+    if not isinstance(ams_root, dict):
+        return None
+    units = ams_root.get("ams")
+    if not isinstance(units, list) or not units:
+        return None
+    tray_now_raw = ams_root.get("tray_now")
+    try:
+        tray_now = int(tray_now_raw) if tray_now_raw is not None else None
+    except (TypeError, ValueError):
+        return None
+    if tray_now is None or tray_now >= 254:
+        return None
+
+    # Search every unit for a tray whose id matches tray_now (per-unit ids 0..3
+    # on A1 AMS Lite; on the bigger AMS the global index can span 0..15).
+    for unit in units:
+        if not isinstance(unit, dict):
+            continue
+        try:
+            unit_id = int(unit.get("id", 0))
+        except (TypeError, ValueError):
+            unit_id = 0
+        trays = unit.get("tray")
+        if not isinstance(trays, list):
+            continue
+        for tray in trays:
+            if not isinstance(tray, dict):
+                continue
+            try:
+                tray_id = int(tray.get("id", -1))
+            except (TypeError, ValueError):
+                continue
+            if unit_id * 4 + tray_id != tray_now and tray_id != tray_now:
+                continue
+            return _format_tray(tray)
+    return None
+
+
+def _format_tray(tray: dict[str, Any]) -> dict[str, Any] | None:
+    type_ = (tray.get("tray_type") or "").strip()
+    brand = (tray.get("tray_sub_brands") or "").strip()
+    color_raw = (tray.get("tray_color") or "").strip()
+    if not type_ and not color_raw:
+        return None
+    out: dict[str, Any] = {}
+    if type_:
+        out["filament_type"] = f"{brand} {type_}".strip() if brand else type_
+    if color_raw:
+        # Bambu sends 8-char RRGGBBAA hex (e.g. "FFD400FF"); drop the alpha
+        # and prefix with '#' so the frontend can use it directly as CSS.
+        hex6 = color_raw[:6].upper()
+        if all(c in "0123456789ABCDEF" for c in hex6) and len(hex6) == 6:
+            out["filament_color"] = f"#{hex6}"
+    return out or None
