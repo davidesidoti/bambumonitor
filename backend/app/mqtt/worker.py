@@ -43,6 +43,15 @@ async def _drain() -> None:
             log.warning("mqtt.process_error", error=str(exc))
 
 
+def get_client() -> BambuMqttClient | None:
+    """Return the running MQTT client or None if not started yet.
+
+    Used by the control API to publish commands without exposing the
+    paho internals.
+    """
+    return _client
+
+
 def start_worker() -> None:
     global _client, _drain_task
     if _client is not None:

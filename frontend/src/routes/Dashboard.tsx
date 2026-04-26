@@ -7,7 +7,7 @@ import { IdleCard } from "@/components/dashboard/IdleCard";
 import { FailedCard } from "@/components/dashboard/FailedCard";
 import { TempCard } from "@/components/dashboard/TempCard";
 import { FilamentTile } from "@/components/dashboard/FilamentTile";
-import { SPEED_LABEL } from "@/lib/format";
+import { SpeedTile } from "@/components/dashboard/SpeedTile";
 import { useFilament } from "@/hooks/useFilament";
 
 export default function Dashboard() {
@@ -27,11 +27,7 @@ export default function Dashboard() {
         <div className="flex flex-col gap-[var(--gap)]">
           <WebcamPanel state={state} />
           <div className="flex flex-wrap gap-3">
-            <KpiTile
-              label="Velocità"
-              value={SPEED_LABEL[state.print_speed] ?? "—"}
-              hint="modalità"
-            />
+            <SpeedTile current={state.print_speed} />
             <KpiTile
               label="Ventola"
               value={`${state.fan_speed}%`}

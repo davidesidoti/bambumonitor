@@ -113,6 +113,19 @@ class BambuMqttClient:
         self._client = None
         _set_connected(False)
 
+    def publish_command(self, payload: dict[str, Any]) -> bool:
+        """Publish a command on the printer's request topic.
+
+        Returns True if the publish was at least handed off to paho's
+        internal queue. Returns False if the client is not connected
+        (caller can decide to surface a 503 to the user).
+        """
+        client = self._client
+        if client is None or not client.is_connected():
+            return False
+        info = client.publish(self._request_topic, json.dumps(payload), qos=0)
+        return info.rc == mqtt.MQTT_ERR_SUCCESS
+
     # ─────────────────────────────────────────────
     # paho callbacks (run on the paho worker thread)
     # ─────────────────────────────────────────────
