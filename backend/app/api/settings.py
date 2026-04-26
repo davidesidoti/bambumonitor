@@ -82,16 +82,39 @@ class AppSettingsWrite(BaseModel):
 
 
 class WebcamSettingsModel(BaseModel):
-    device: str = Field(pattern=r"^/dev/video\d+$")
+    # Stream
+    # Accepts /dev/videoN or /dev/v4l/by-id|by-path/...
+    device: str = Field(
+        pattern=r"^/dev/(video\d+|v4l/by-(id|path)/[A-Za-z0-9._:\-]+)$"
+    )
     resolution: str = Field(pattern=r"^\d{3,4}x\d{3,4}$")
-    desired_fps: Annotated[int, Field(ge=1, le=60)]
+    desired_fps: Annotated[int, Field(ge=1, le=120)]
     host: str
     port: Annotated[int, Field(ge=1, le=65535)]
-    drop_same_frames: Annotated[int, Field(ge=0, le=30)]
-    exposure: Annotated[int, Field(ge=1, le=10000)]
-    gain: Annotated[int, Field(ge=0, le=100)]
+    drop_same_frames: Annotated[int, Field(ge=0, le=60)]
+
+    # Exposure
+    auto_exposure: bool
+    exposure_dynamic_framerate: bool
+    exposure_time_absolute: Annotated[int, Field(ge=1, le=10000)]
+
+    # Image (signed where the v4l2 spec allows it)
+    brightness: Annotated[int, Field(ge=-255, le=255)]
     contrast: Annotated[int, Field(ge=0, le=255)]
-    brightness: Annotated[int, Field(ge=0, le=255)]
+    saturation: Annotated[int, Field(ge=0, le=255)]
+    gain: Annotated[int, Field(ge=0, le=255)]
+    gamma: Annotated[int, Field(ge=0, le=500)]
+    sharpness: Annotated[int, Field(ge=0, le=255)]
+    backlight_compensation: Annotated[int, Field(ge=0, le=10)]
+
+    # White balance
+    white_balance_automatic: bool
+
+    # Power line frequency: 0=off, 1=50Hz, 2=60Hz
+    power_line_frequency: Annotated[int, Field(ge=0, le=2)]
+
+    # Pass-through for v4l2 controls the UI doesn't expose; preserved on save.
+    extra_ctrls: dict[str, str] = Field(default_factory=dict)
 
 
 class VersionInfo(BaseModel):

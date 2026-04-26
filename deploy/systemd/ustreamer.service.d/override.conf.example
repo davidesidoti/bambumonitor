@@ -9,10 +9,18 @@
 #   sudo systemctl daemon-reload && sudo systemctl restart ustreamer.service
 
 [Service]
-ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c exposure_auto=1
-ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c exposure_absolute=250
-ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c gain=0
-ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c contrast=128
-ExecStartPre=/usr/bin/v4l2-ctl -d /dev/video0 -c brightness=128
+# `-` prefix tells systemd to ignore non-zero exit so a control the camera
+# does not expose does not abort the whole unit start.
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=power_line_frequency=1
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=auto_exposure=3
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=exposure_dynamic_framerate=1
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=gain=0
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=brightness=0
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=gamma=100
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=contrast=128
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=saturation=128
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=sharpness=3
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=backlight_compensation=0
+ExecStartPre=-/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl=white_balance_automatic=1
 ExecStart=
 ExecStart=/usr/bin/ustreamer --device=/dev/video0 --resolution=1280x720 --desired-fps=15 --format=MJPEG --host=127.0.0.1 --port=9999 --drop-same-frames=0 --slowdown

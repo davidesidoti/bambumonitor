@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { ApiError, apiFetch } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
@@ -23,13 +25,31 @@ interface WebcamSettings {
   host: string;
   port: number;
   drop_same_frames: number;
-  exposure: number;
-  gain: number;
-  contrast: number;
+
+  auto_exposure: boolean;
+  exposure_dynamic_framerate: boolean;
+  exposure_time_absolute: number;
+
   brightness: number;
+  contrast: number;
+  saturation: number;
+  gain: number;
+  gamma: number;
+  sharpness: number;
+  backlight_compensation: number;
+
+  white_balance_automatic: boolean;
+  power_line_frequency: number;
+
+  extra_ctrls: Record<string, string>;
 }
 
 const RESOLUTIONS = ["640x480", "1280x720", "1920x1080"];
+const POWER_LINE_OPTIONS = [
+  { value: 0, label: "Disabilitato" },
+  { value: 1, label: "50 Hz (Europa)" },
+  { value: 2, label: "60 Hz (USA/JP)" },
+];
 
 export function WebcamSettingsPanel() {
   const qc = useQueryClient();
@@ -86,6 +106,7 @@ export function WebcamSettingsPanel() {
   ) => setForm((f) => (f ? { ...f, [k]: v } : f));
 
   const customResolution = !RESOLUTIONS.includes(form.resolution);
+  const extraCtrlEntries = Object.entries(form.extra_ctrls);
 
   return (
     <form
@@ -100,11 +121,15 @@ export function WebcamSettingsPanel() {
         description="Periferica e endpoint del processo ustreamer."
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Device">
+          <Field
+            label="Device"
+            help="Es. /dev/video0 oppure /dev/v4l/by-id/usb-..."
+          >
             <Input
               value={form.device}
               onChange={(e) => update("device", e.target.value)}
               placeholder="/dev/video0"
+              spellCheck={false}
             />
           </Field>
           <Field label="Risoluzione">
@@ -133,7 +158,7 @@ export function WebcamSettingsPanel() {
             <Input
               type="number"
               min={1}
-              max={60}
+              max={120}
               value={form.desired_fps}
               onChange={(e) => update("desired_fps", Number(e.target.value))}
             />
@@ -142,7 +167,7 @@ export function WebcamSettingsPanel() {
             <Input
               type="number"
               min={0}
-              max={30}
+              max={60}
               value={form.drop_same_frames}
               onChange={(e) =>
                 update("drop_same_frames", Number(e.target.value))
@@ -169,40 +194,140 @@ export function WebcamSettingsPanel() {
       </SectionCard>
 
       <SectionCard
-        title="Controlli immagine (v4l2)"
-        description="Applicati come ExecStartPre prima di avviare ustreamer. I range dipendono dalla webcam."
+        title="Esposizione"
+        description="Auto, framerate dinamico e tempo manuale (in unità v4l2)."
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <SliderField
-            label="Esposizione"
-            value={form.exposure}
-            min={1}
-            max={10000}
-            onValueChange={(v) => update("exposure", v)}
+          <Label className="cursor-pointer">
+            <Switch
+              checked={form.auto_exposure}
+              onCheckedChange={(v) => update("auto_exposure", v)}
+            />
+            <span>Esposizione automatica</span>
+          </Label>
+          <Label className="cursor-pointer">
+            <Switch
+              checked={form.exposure_dynamic_framerate}
+              onCheckedChange={(v) => update("exposure_dynamic_framerate", v)}
+            />
+            <span>Framerate dinamico (auto-FPS in scarsa luce)</span>
+          </Label>
+          {!form.auto_exposure && (
+            <NumberSliderField
+              label="Tempo di esposizione"
+              value={form.exposure_time_absolute}
+              min={1}
+              max={10000}
+              onValueChange={(v) => update("exposure_time_absolute", v)}
+              className="sm:col-span-2"
+            />
+          )}
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Bilanciamento del bianco e rete"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Label className="cursor-pointer">
+            <Switch
+              checked={form.white_balance_automatic}
+              onCheckedChange={(v) => update("white_balance_automatic", v)}
+            />
+            <span>Bilanciamento bianco automatico</span>
+          </Label>
+          <Field label="Frequenza rete (anti-flicker)">
+            <Select
+              value={String(form.power_line_frequency)}
+              onValueChange={(v) => update("power_line_frequency", Number(v))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {POWER_LINE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={String(o.value)}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Controlli immagine (v4l2)"
+        description="I range dipendono dalla webcam. La luminosità accetta valori negativi."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <NumberSliderField
+            label="Luminosità"
+            value={form.brightness}
+            min={-255}
+            max={255}
+            onValueChange={(v) => update("brightness", v)}
           />
-          <SliderField
-            label="Gain"
-            value={form.gain}
-            min={0}
-            max={100}
-            onValueChange={(v) => update("gain", v)}
-          />
-          <SliderField
+          <NumberSliderField
             label="Contrasto"
             value={form.contrast}
             min={0}
             max={255}
             onValueChange={(v) => update("contrast", v)}
           />
-          <SliderField
-            label="Luminosità"
-            value={form.brightness}
+          <NumberSliderField
+            label="Saturazione"
+            value={form.saturation}
             min={0}
             max={255}
-            onValueChange={(v) => update("brightness", v)}
+            onValueChange={(v) => update("saturation", v)}
+          />
+          <NumberSliderField
+            label="Gain"
+            value={form.gain}
+            min={0}
+            max={255}
+            onValueChange={(v) => update("gain", v)}
+          />
+          <NumberSliderField
+            label="Gamma"
+            value={form.gamma}
+            min={0}
+            max={500}
+            onValueChange={(v) => update("gamma", v)}
+          />
+          <NumberSliderField
+            label="Nitidezza"
+            value={form.sharpness}
+            min={0}
+            max={255}
+            onValueChange={(v) => update("sharpness", v)}
+          />
+          <NumberSliderField
+            label="Compensazione controluce"
+            value={form.backlight_compensation}
+            min={0}
+            max={10}
+            onValueChange={(v) => update("backlight_compensation", v)}
           />
         </div>
       </SectionCard>
+
+      {extraCtrlEntries.length > 0 && (
+        <SectionCard
+          title="Controlli aggiuntivi"
+          description="Letti dal drop-in esistente, salvati invariati."
+        >
+          <ul className="grid gap-1 text-sm">
+            {extraCtrlEntries.map(([k, v]) => (
+              <li key={k} className="mono flex justify-between">
+                <span>{k}</span>
+                <span className="text-fg-3">{v}</span>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      )}
 
       <div className="flex justify-end">
         <Button type="submit" disabled={mutation.isPending}>
@@ -213,33 +338,51 @@ export function WebcamSettingsPanel() {
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({
+  label,
+  help,
+  children,
+}: {
+  label: string;
+  help?: string;
+  children: ReactNode;
+}) {
   return (
     <label className="grid gap-1.5 text-sm">
       <span className="text-xs font-medium text-fg-2">{label}</span>
       {children}
+      {help && <span className="text-xs text-fg-3">{help}</span>}
     </label>
   );
 }
 
-function SliderField({
+function NumberSliderField({
   label,
   value,
   min,
   max,
   onValueChange,
+  className,
 }: {
   label: string;
   value: number;
   min: number;
   max: number;
   onValueChange: (v: number) => void;
+  className?: string;
 }) {
   return (
-    <div className="grid gap-1.5 text-sm">
-      <div className="flex items-center justify-between">
+    <div className={`grid gap-1.5 text-sm ${className ?? ""}`}>
+      <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-fg-2">{label}</span>
-        <span className="mono text-xs tabular-nums">{value}</span>
+        <Input
+          type="number"
+          className="h-7 w-24 text-right"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onValueChange(Number(e.target.value))}
+        />
       </div>
       <Slider
         value={[value]}
@@ -248,6 +391,10 @@ function SliderField({
         step={1}
         onValueChange={([v]) => onValueChange(v)}
       />
+      <div className="flex justify-between text-[10px] text-fg-4">
+        <span>{min}</span>
+        <span>{max}</span>
+      </div>
     </div>
   );
 }

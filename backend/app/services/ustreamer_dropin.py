@@ -9,6 +9,10 @@ The base ustreamer.service in the repo defines an ExecStart= line; to override
 it from a drop-in we must emit an empty `ExecStart=` first to clear the prior
 value, then a new `ExecStart=` with our flags. v4l2 controls go in
 ExecStartPre= lines (one per knob).
+
+ExecStartPre lines are prefixed with `-` so a control that the camera does
+not expose (e.g. `power_line_frequency` on a webcam that has no such control)
+returns non-zero from v4l2-ctl without aborting the unit start.
 """
 
 from __future__ import annotations
@@ -16,47 +20,76 @@ from __future__ import annotations
 import re
 import shlex
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
-DEFAULTS = {
-    "device": "/dev/video0",
-    "resolution": "1280x720",
-    "desired_fps": 15,
-    "host": "127.0.0.1",
-    "port": 9999,
-    "drop_same_frames": 0,
-    "exposure": 250,
-    "gain": 0,
-    "contrast": 128,
-    "brightness": 128,
-}
+# v4l2 auto-exposure mode values (UVC):
+#   1 = Manual
+#   3 = Aperture Priority (auto)
+AUTO_EXPOSURE_AUTO = 3
+AUTO_EXPOSURE_MANUAL = 1
 
 
 @dataclass
 class WebcamSettings:
+    # Stream
     device: str = "/dev/video0"
     resolution: str = "1280x720"
     desired_fps: int = 15
     host: str = "127.0.0.1"
     port: int = 9999
     drop_same_frames: int = 0
-    exposure: int = 250
-    gain: int = 0
+
+    # Exposure
+    auto_exposure: bool = True
+    exposure_dynamic_framerate: bool = True
+    exposure_time_absolute: int = 250  # used only when auto_exposure is False
+
+    # Image
+    brightness: int = 0
     contrast: int = 128
-    brightness: int = 128
+    saturation: int = 128
+    gain: int = 0
+    gamma: int = 100
+    sharpness: int = 3
+    backlight_compensation: int = 0
+
+    # White balance
+    white_balance_automatic: bool = True
+
+    # Power line (0=off, 1=50Hz, 2=60Hz)
+    power_line_frequency: int = 1
+
+    # Extra controls the UI does not expose, preserved on round-trip so we
+    # don't silently drop user-added knobs.
+    extra_ctrls: dict[str, str] = field(default_factory=dict)
 
 
-_V4L2_CTL_RE = re.compile(
-    r"^ExecStartPre=.*v4l2-ctl.*-c\s+(?P<name>[A-Za-z_]+)=(?P<val>-?\d+)\s*$"
+# Controls owned by the typed model (NOT preserved in extra_ctrls).
+_KNOWN_CTRLS = {
+    "auto_exposure",
+    "exposure_dynamic_framerate",
+    "exposure_time_absolute",
+    "exposure_absolute",  # legacy alias of exposure_time_absolute
+    "exposure_auto",  # legacy alias of auto_exposure
+    "brightness",
+    "contrast",
+    "saturation",
+    "gain",
+    "gamma",
+    "sharpness",
+    "backlight_compensation",
+    "white_balance_automatic",
+    "white_balance_temperature_auto",  # legacy alias
+    "power_line_frequency",
+}
+
+# Match: ExecStartPre[=-]/usr/bin/v4l2-ctl ... (--set-ctrl=K=V | -c K=V)
+_CTRL_RE = re.compile(
+    r"ExecStartPre=-?.*v4l2-ctl.*?(?:--set-ctrl[= ]|-c\s+)"
+    r"(?P<name>[A-Za-z_]+)=(?P<val>-?\d+)"
 )
 _FLAG_RE = re.compile(r"--(?P<key>[a-z0-9-]+)(?:=(?P<val>\S+))?")
-_V4L2_TO_FIELD = {
-    "exposure_absolute": "exposure",
-    "gain": "gain",
-    "contrast": "contrast",
-    "brightness": "brightness",
-}
 _FLAG_TO_FIELD = {
     "device": "device",
     "resolution": "resolution",
@@ -65,15 +98,7 @@ _FLAG_TO_FIELD = {
     "port": "port",
     "drop-same-frames": "drop_same_frames",
 }
-_INT_FIELDS = {
-    "desired_fps",
-    "port",
-    "drop_same_frames",
-    "exposure",
-    "gain",
-    "contrast",
-    "brightness",
-}
+_INT_FIELDS = {"desired_fps", "port", "drop_same_frames"}
 
 
 def parse_dropin(path: Path) -> WebcamSettings:
@@ -87,53 +112,101 @@ def parse_dropin(path: Path) -> WebcamSettings:
         line = raw.strip()
         if not line or line.startswith("#") or line.startswith("["):
             continue
-        m = _V4L2_CTL_RE.match(line)
+        m = _CTRL_RE.search(line)
         if m:
-            field = _V4L2_TO_FIELD.get(m.group("name"))
-            if field:
-                setattr(s, field, int(m.group("val")))
+            _apply_ctrl(s, m.group("name"), m.group("val"))
             continue
         if line.startswith("ExecStart=") and "ustreamer" in line:
             for flag in _FLAG_RE.finditer(line):
-                field = _FLAG_TO_FIELD.get(flag.group("key"))
-                if field is None:
+                field_name = _FLAG_TO_FIELD.get(flag.group("key"))
+                if field_name is None:
                     continue
                 val = flag.group("val")
                 if val is None:
                     continue
-                if field in _INT_FIELDS:
+                if field_name in _INT_FIELDS:
                     try:
-                        setattr(s, field, int(val))
+                        setattr(s, field_name, int(val))
                     except ValueError:
                         continue
                 else:
-                    setattr(s, field, val)
+                    setattr(s, field_name, val)
     return s
+
+
+def _apply_ctrl(s: WebcamSettings, name: str, raw: str) -> None:
+    try:
+        val = int(raw)
+    except ValueError:
+        return
+    # Normalise legacy aliases.
+    if name in {"auto_exposure", "exposure_auto"}:
+        s.auto_exposure = val == AUTO_EXPOSURE_AUTO
+        return
+    if name in {"exposure_time_absolute", "exposure_absolute"}:
+        s.exposure_time_absolute = val
+        return
+    if name in {"white_balance_automatic", "white_balance_temperature_auto"}:
+        s.white_balance_automatic = bool(val)
+        return
+    if name == "exposure_dynamic_framerate":
+        s.exposure_dynamic_framerate = bool(val)
+        return
+    if hasattr(s, name) and name in _KNOWN_CTRLS:
+        setattr(s, name, val)
+        return
+    # Unknown control: preserve verbatim so saves don't strip it.
+    s.extra_ctrls[name] = raw
 
 
 def render_dropin(s: WebcamSettings) -> str:
     """Render WebcamSettings back into a systemd drop-in file body."""
+    d = s.device
+    ctrls: list[tuple[str, int | str]] = [
+        ("power_line_frequency", s.power_line_frequency),
+        (
+            "auto_exposure",
+            AUTO_EXPOSURE_AUTO if s.auto_exposure else AUTO_EXPOSURE_MANUAL,
+        ),
+        ("exposure_dynamic_framerate", 1 if s.exposure_dynamic_framerate else 0),
+    ]
+    if not s.auto_exposure:
+        ctrls.append(("exposure_time_absolute", s.exposure_time_absolute))
+    ctrls.extend(
+        [
+            ("gain", s.gain),
+            ("brightness", s.brightness),
+            ("gamma", s.gamma),
+            ("contrast", s.contrast),
+            ("saturation", s.saturation),
+            ("sharpness", s.sharpness),
+            ("backlight_compensation", s.backlight_compensation),
+            ("white_balance_automatic", 1 if s.white_balance_automatic else 0),
+        ]
+    )
+    for k, v in s.extra_ctrls.items():
+        ctrls.append((k, v))
+
     lines = [
         "# Managed by bambu-monitor settings tab. Edits via UI overwrite this file.",
         "[Service]",
-        f"ExecStartPre=/usr/bin/v4l2-ctl -d {s.device} -c exposure_auto=1",
-        f"ExecStartPre=/usr/bin/v4l2-ctl -d {s.device} -c exposure_absolute={s.exposure}",
-        f"ExecStartPre=/usr/bin/v4l2-ctl -d {s.device} -c gain={s.gain}",
-        f"ExecStartPre=/usr/bin/v4l2-ctl -d {s.device} -c contrast={s.contrast}",
-        f"ExecStartPre=/usr/bin/v4l2-ctl -d {s.device} -c brightness={s.brightness}",
-        "ExecStart=",
-        (
-            f"ExecStart=/usr/bin/ustreamer "
-            f"--device={s.device} "
-            f"--resolution={s.resolution} "
-            f"--desired-fps={s.desired_fps} "
-            f"--format=MJPEG "
-            f"--host={s.host} "
-            f"--port={s.port} "
-            f"--drop-same-frames={s.drop_same_frames} "
-            f"--slowdown"
-        ),
     ]
+    for name, value in ctrls:
+        lines.append(
+            f"ExecStartPre=-/usr/bin/v4l2-ctl -d {d} --set-ctrl={name}={value}"
+        )
+    lines.append("ExecStart=")
+    lines.append(
+        "ExecStart=/usr/bin/ustreamer "
+        f"--device={d} "
+        f"--resolution={s.resolution} "
+        f"--desired-fps={s.desired_fps} "
+        f"--format=MJPEG "
+        f"--host={s.host} "
+        f"--port={s.port} "
+        f"--drop-same-frames={s.drop_same_frames} "
+        f"--slowdown"
+    )
     return "\n".join(lines) + "\n"
 
 

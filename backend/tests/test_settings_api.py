@@ -77,33 +77,50 @@ def test_app_write_accepts_masked_access_code_as_sentinel() -> None:
     assert body.printer_access_code == ACCESS_CODE_MASK
 
 
+def _webcam_kwargs(**overrides: object) -> dict[str, object]:
+    base: dict[str, object] = dict(
+        device="/dev/video0",
+        resolution="1280x720",
+        desired_fps=15,
+        host="127.0.0.1",
+        port=9999,
+        drop_same_frames=0,
+        auto_exposure=True,
+        exposure_dynamic_framerate=True,
+        exposure_time_absolute=250,
+        brightness=0,
+        contrast=128,
+        saturation=128,
+        gain=0,
+        gamma=100,
+        sharpness=3,
+        backlight_compensation=0,
+        white_balance_automatic=True,
+        power_line_frequency=1,
+    )
+    base.update(overrides)
+    return base
+
+
 def test_webcam_validation_rejects_bad_device() -> None:
     with pytest.raises(ValidationError):
-        WebcamSettingsModel(
-            device="/tmp/something",
-            resolution="1280x720",
-            desired_fps=15,
-            host="127.0.0.1",
-            port=9999,
-            drop_same_frames=0,
-            exposure=250,
-            gain=0,
-            contrast=128,
-            brightness=128,
-        )
+        WebcamSettingsModel(**_webcam_kwargs(device="/tmp/something"))
 
 
 def test_webcam_validation_clamps_fps() -> None:
     with pytest.raises(ValidationError):
-        WebcamSettingsModel(
-            device="/dev/video0",
-            resolution="1280x720",
-            desired_fps=999,
-            host="127.0.0.1",
-            port=9999,
-            drop_same_frames=0,
-            exposure=250,
-            gain=0,
-            contrast=128,
-            brightness=128,
+        WebcamSettingsModel(**_webcam_kwargs(desired_fps=999))
+
+
+def test_webcam_validation_accepts_by_id_device() -> None:
+    m = WebcamSettingsModel(
+        **_webcam_kwargs(
+            device="/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._JOYACCESS-video-index0"
         )
+    )
+    assert m.device.startswith("/dev/v4l/by-id/")
+
+
+def test_webcam_validation_accepts_negative_brightness() -> None:
+    m = WebcamSettingsModel(**_webcam_kwargs(brightness=-30))
+    assert m.brightness == -30
