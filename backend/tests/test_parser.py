@@ -73,8 +73,17 @@ def test_skips_unknown_gcode_state() -> None:
 
 
 def test_drops_zero_unix_start_time() -> None:
+    # gcode_start_time=0 means "no value yet"; we must not emit the field so
+    # an existing (good) started_at on PrinterState isn't clobbered.
     patch = parse_report({"print": {"gcode_start_time": 0}})
-    assert patch["started_at"] is None
+    assert "started_at" not in patch
+
+
+def test_ignores_filament_id_catalog_code() -> None:
+    # filament_id (e.g. "GFL99") is Bambu's internal catalog code, not a
+    # human-readable name; the parser must not surface it.
+    patch = parse_report({"print": {"filament_id": "GFL99"}})
+    assert "filament_type" not in patch
 
 
 def test_garbage_input_is_safe() -> None:

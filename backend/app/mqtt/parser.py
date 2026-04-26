@@ -99,18 +99,23 @@ def parse_report(payload: dict[str, Any]) -> dict[str, Any]:
             val = max(0, cast(int, val))
         patch[field] = val
 
-    # gcode_start_time -> ISO string
+    # gcode_start_time -> ISO string. Only emit when we have a valid value;
+    # the printer sometimes pushes 0/empty in incremental updates and we don't
+    # want to clobber a previously captured start time.
     if "gcode_start_time" in block:
         dt = from_unix_seconds(block.get("gcode_start_time"))
-        patch["started_at"] = iso_z(dt) if dt else None
+        if dt is not None:
+            patch["started_at"] = iso_z(dt)
 
     # Filament: prefer the AMS active tray (rich data with brand + color),
-    # fall back to top-level filament_type otherwise.
+    # fall back to the human-readable top-level filament_type otherwise. We
+    # deliberately ignore filament_id (Bambu catalog codes like "GFL99") since
+    # they are not user-friendly.
     ams_filament = _extract_ams_active_filament(block)
     if ams_filament is not None:
         patch.update(ams_filament)
     else:
-        ftype = block.get("filament_type") or block.get("filament_id")
+        ftype = block.get("filament_type")
         if isinstance(ftype, str) and ftype.strip():
             patch["filament_type"] = ftype.strip()
 

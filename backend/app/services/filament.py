@@ -1,13 +1,9 @@
 """Filament merging.
 
-The Bambu A1 base (no AMS Lite) does not reliably report the loaded
-filament. Strategy:
-  1. If the printer reported a filament_type via MQTT (in PrinterState),
-     use that as the type.
-  2. Otherwise fall back to whatever the user last saved via PUT
-     /api/filament/current.
-  3. The color always comes from the user-set value (printer never
-     reports color on this hardware).
+Strategy: prefer values reported by the printer (AMS active tray when
+available, else top-level filament_type), fall back to whatever the user
+last saved via PUT /api/filament/current. The Bambu A1 base (no AMS Lite)
+does not report filament info, so the user-saved values are the only source.
 """
 
 from __future__ import annotations
@@ -31,7 +27,7 @@ async def get_current(session: AsyncSession) -> dict[str, str]:
     user_color = row.color if row else ""
     return {
         "type": s.filament_type or user_type,
-        "color": user_color,
+        "color": s.filament_color or user_color,
     }
 
 
