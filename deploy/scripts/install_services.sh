@@ -10,6 +10,9 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
+echo "==> ensuring deploy scripts are executable"
+chmod +x "${REPO_ROOT}/deploy/scripts/"*.sh
+
 echo "==> installing systemd units"
 install -m 0644 "${REPO_ROOT}/deploy/systemd/bambu-monitor.service" /etc/systemd/system/
 install -m 0644 "${REPO_ROOT}/deploy/systemd/ustreamer.service" /etc/systemd/system/
