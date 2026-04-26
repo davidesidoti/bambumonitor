@@ -17,15 +17,20 @@ Restart=on-failure
 RestartSec=3s
 TimeoutStopSec=10s
 
-# Hardening: the service only needs to read its own dir + write the SQLite DB.
+# Hardening
 # NoNewPrivileges is intentionally omitted: sudo (used for settings writes and
 # the updater) relies on its setuid-root bit, which the kernel blocks when
 # PR_SET_NO_NEW_PRIVS is set. The sudoers drop-in restricts exactly which
 # commands bambu may run as root, so the privilege surface is still narrow.
+#
+# ProtectSystem=true (not strict): makes /usr and /boot read-only. /etc and
+# /opt remain writable so sudo-invoked helpers (update.sh, tee for config
+# files, install_services.sh) can do their job without leaving the service's
+# mount namespace. strict would make all paths read-only and block git pull,
+# uv sync, npm build, and rsync even when escalated to root via sudo.
 PrivateTmp=true
-ProtectSystem=strict
+ProtectSystem=true
 ProtectHome=read-only
-ReadWritePaths=/opt/bambu-monitor/backend
 
 [Install]
 WantedBy=multi-user.target

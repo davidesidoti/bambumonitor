@@ -9,6 +9,10 @@ TARGET="${TARGET:-/var/www/bambu-monitor}"
 
 cd "${REPO_ROOT}/frontend"
 
+# Keep npm cache inside the project so writes don't hit /root/.npm, which is
+# blocked by ProtectHome=read-only when running from within the service namespace.
+export npm_config_cache="${REPO_ROOT}/frontend/.npm-cache"
+
 echo "==> npm ci"
 npm ci
 
