@@ -17,3 +17,13 @@ export function useSetSpeed() {
       }),
   });
 }
+
+export function useSetChamberLight() {
+  return useMutation({
+    mutationFn: (on: boolean) =>
+      apiFetch<CommandResult>("/control/chamber-light", {
+        method: "POST",
+        body: JSON.stringify({ on }),
+      }),
+  });
+}

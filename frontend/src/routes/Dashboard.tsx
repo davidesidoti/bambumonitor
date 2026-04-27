@@ -8,6 +8,7 @@ import { FailedCard } from "@/components/dashboard/FailedCard";
 import { TempCard } from "@/components/dashboard/TempCard";
 import { FilamentTile } from "@/components/dashboard/FilamentTile";
 import { SpeedTile } from "@/components/dashboard/SpeedTile";
+import { ChamberLightTile } from "@/components/dashboard/ChamberLightTile";
 import { useFilament } from "@/hooks/useFilament";
 
 export default function Dashboard() {
@@ -28,6 +29,7 @@ export default function Dashboard() {
           <WebcamPanel state={state} />
           <div className="flex flex-wrap gap-3">
             <SpeedTile current={state.print_speed} />
+            <ChamberLightTile current={state.chamber_light} />
             <KpiTile
               label="Ventola"
               value={`${state.fan_speed}%`}

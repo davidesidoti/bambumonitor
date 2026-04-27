@@ -17,6 +17,7 @@ const INITIAL_STATE: PrinterState = {
   fan_speed: 0,
   filament_type: null,
   filament_color: null,
+  chamber_light: false,
   last_update: new Date(0).toISOString(),
 };
 

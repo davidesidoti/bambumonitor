@@ -32,6 +32,7 @@ class PrinterState(BaseModel):
     fan_speed: int = 0
     filament_type: str | None = None
     filament_color: str | None = None
+    chamber_light: bool = False
     last_update: str = Field(default_factory=lambda: iso_z(utcnow()))
 
 

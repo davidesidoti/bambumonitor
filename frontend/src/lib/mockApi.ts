@@ -211,6 +211,7 @@ export function mockSnapshot(opts?: Partial<MockTickState>): PrinterState {
     fan_speed: gcode === "RUNNING" ? 65 : 0,
     filament_type: mockFilament.type,
     filament_color: mockFilament.color,
+    chamber_light: gcode === "RUNNING",
     last_update: new Date().toISOString(),
   };
 }

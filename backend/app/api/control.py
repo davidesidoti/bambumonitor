@@ -24,6 +24,10 @@ class SpeedBody(BaseModel):
     level: SpeedLevel = Field(description="1=Silent, 2=Standard, 3=Sport, 4=Ludicrous")
 
 
+class ChamberLightBody(BaseModel):
+    on: bool
+
+
 class CommandResult(BaseModel):
     ok: bool
     detail: str
@@ -56,3 +60,28 @@ async def set_speed(body: SpeedBody) -> CommandResult:
         bus.publish(TOPIC_STATE_DELTA, applied)
 
     return CommandResult(ok=True, detail=f"speed set to {body.level}")
+
+
+@router.post("/control/chamber-light", response_model=CommandResult, tags=["control"])
+async def set_chamber_light(body: ChamberLightBody) -> CommandResult:
+    payload = {
+        "system": {
+            "sequence_id": str(int(time.time())),
+            "command": "ledctrl",
+            "led_node": "chamber_light",
+            "led_mode": "on" if body.on else "off",
+            "led_on_time": 500,
+            "led_off_time": 500,
+            "led_interval_time": 0,
+            "led_loop_times": 0,
+        }
+    }
+    if not _publish(payload):
+        raise HTTPException(503, "MQTT not connected")
+    log.info("control.chamber_light", on=body.on)
+
+    applied = apply_patch({"chamber_light": body.on})
+    if applied:
+        bus.publish(TOPIC_STATE_DELTA, applied)
+
+    return CommandResult(ok=True, detail=f"chamber light {'on' if body.on else 'off'}")

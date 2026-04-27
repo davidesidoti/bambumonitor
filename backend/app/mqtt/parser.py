@@ -16,6 +16,7 @@ Field mapping (under the ``print`` object in the message):
   spd_lvl                         -> print_speed
   cooling_fan_speed               -> fan_speed
   filament_type (best effort)     -> filament_type
+  lights_report[node=chamber_light].mode -> chamber_light (bool)
 
 Unknown fields are ignored; missing fields just don't appear in the patch.
 The parser is defensive: it never raises on malformed payloads.
@@ -118,6 +119,20 @@ def parse_report(payload: dict[str, Any]) -> dict[str, Any]:
         ftype = block.get("filament_type")
         if isinstance(ftype, str) and ftype.strip():
             patch["filament_type"] = ftype.strip()
+
+    lights = block.get("lights_report")
+    if isinstance(lights, list):
+        for entry in lights:
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("node") != "chamber_light":
+                continue
+            mode = entry.get("mode")
+            if mode == "on":
+                patch["chamber_light"] = True
+            elif mode == "off":
+                patch["chamber_light"] = False
+            break
 
     return patch
 

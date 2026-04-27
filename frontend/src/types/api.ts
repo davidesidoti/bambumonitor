@@ -24,6 +24,7 @@ export interface PrinterState {
   fan_speed: number;
   filament_type: string | null;
   filament_color: string | null;
+  chamber_light: boolean;
   last_update: string;
 }
 
